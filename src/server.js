@@ -103,8 +103,6 @@ const connectWithRetry = () => {
   
   // Connection options
   const options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
     heartbeatFrequencyMS: 10000, // Default is 10000
     maxPoolSize: 10, // Maintain up to 10 socket connections
