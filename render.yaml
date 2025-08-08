@@ -17,5 +17,5 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: ALLOWED_ORIGINS
-        value: https://crypto-crash.vercel.app
+        value: https://crytp-beryl.vercel.app
     autoDeploy: true
