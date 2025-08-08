@@ -509,7 +509,7 @@
     // API URL - Automatically detect environment
     const API_URL = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000/api'
-      : 'https://crypto-crash-api.onrender.com/api'; // Update with your Render backend URL
+      : 'https://crytpo-crash.onrender.com'; // Update with your Render backend URL
     
     // DOM Elements
     const usernameInput = document.getElementById('username');
@@ -1033,7 +1033,7 @@
       function attemptConnection() {
         // Determine WebSocket URL based on environment
         // In production, use the same domain as the API
-        const wsUrl = API_URL.includes('localhost') ? 'http://localhost:3000' : API_URL;
+        const wsUrl = API_URL.includes('localhost') ? 'http://localhost:3000' : 'https://crytpo-crash.onrender.com';
         
         // Connect to WebSocket server
         socket = io(wsUrl, {
