@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Crash - WebSocket Test Client</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap');
+    
+    :root {
+      --primary: #00ff9d;
+      --primary-dark: #00cc7d;
+      --secondary: #ff00dd;
+      --secondary-dark: #cc00b1;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --text-light: #ffffff;
+      --text-dim: #aaaaaa;
+      --danger: #ff4757;
+      --success: #00ff9d;
+      --warning: #ffa502;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      --glow: 0 0 10px rgba(0, 255, 157, 0.5);
+    }
+    
+    * {
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 255, 157, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(255, 0, 221, 0.05) 0%, transparent 20%);
+      background-attachment: fixed;
+    }
+    
+    .container {
+      background-color: var(--bg-card);
+      border-radius: var(--border-radius);
+      padding: 25px;
+      box-shadow: var(--box-shadow);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(0, 255, 157, 0.03), transparent);
+      transform: rotate(45deg);
+      animation: shine 10s infinite linear;
+      pointer-events: none;
+    }
+    
+    @keyframes shine {
+      0% { transform: translateY(-100%) rotate(45deg); }
+      100% { transform: translateY(100%) rotate(45deg); }
+    }
+    
+    h1, h2, h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--text-light);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      position: relative;
+      display: inline-block;
+    }
+    
+    h1 {
+      width: 100%;
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 30px;
+      text-shadow: 0 0 5px rgba(0, 255, 157, 0.3);
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 30px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid var(--primary);
+    }
+    
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 30px;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: var(--border-radius);
+      border: 1px solid rgba(0, 255, 157, 0.1);
+      position: relative;
+    }
+    
+    .multiplier-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+    }
+    
+    .multiplier-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid rgba(0, 255, 157, 0.1);
+      border-top: 4px solid var(--primary);
+      animation: spin 2s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .multiplier {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 48px;
+      font-weight: bold;
+      color: var(--primary);
+      text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+      z-index: 1;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .crashed {
+      color: var(--danger);
+      text-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+      animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-weight: bold;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: all 0.5s;
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    .bet-btn {
+      background-color: var(--primary);
+      color: #000;
+    }
+    
+    .bet-btn:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--glow);
+    }
+    
+    .cashout-btn {
+      background-color: var(--secondary);
+      color: #fff;
+    }
+    
+    .cashout-btn:hover {
+      background-color: var(--secondary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 0 10px rgba(255, 0, 221, 0.5);
+    }
+    
+    .cashout-btn:disabled {
+      background-color: #333;
+      color: #666;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    input, select {
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--border-radius);
+      background-color: rgba(0, 0, 0, 0.2);
+      color: var(--text-light);
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 5px rgba(0, 255, 157, 0.5);
+    }
+    
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: var(--border-radius);
+      background-color: rgba(0, 0, 0, 0.2);
+      border-left: 3px solid var(--primary);
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    .events {
+      margin-top: 30px;
+      height: 200px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: var(--border-radius);
+      background-color: rgba(0, 0, 0, 0.2);
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary) #333;
+    }
+    
+    .events::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .events::-webkit-scrollbar-track {
+      background: #333;
+      border-radius: 10px;
+    }
+    
+    .events::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 10px;
+    }
+    
+    .event {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-family: 'Roboto', sans-serif;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .event:hover {
+      background-color: rgba(0, 255, 157, 0.05);
+    }
+    
+    .auth-container {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: var(--border-radius);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .wallet-info {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: var(--border-radius);
+      background-color: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(0, 255, 157, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .wallet-info::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, transparent, rgba(0, 255, 157, 0.05), transparent);
+      animation: shine 5s infinite linear;
+    }
+    
+    .history {
+      margin-top: 30px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+    
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    th {
+      background-color: rgba(0, 0, 0, 0.3);
+      color: var(--primary);
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    tr:hover {
+      background-color: rgba(0, 255, 157, 0.05);
+    }
+    
+    /* Animations */
+    @keyframes success-pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .success-animation {
+      animation: success-pulse 0.5s ease-in-out;
+    }
+    
+    /* Loading animation */
+    .loading::after {
+      content: '.';
+      animation: loading-dots 1.5s infinite;
+    }
+    
+    @keyframes loading-dots {
+      0% { content: '.'; }
+      33% { content: '..'; }
+      66% { content: '...'; }
+      100% { content: '.'; }
+    }
+    
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: var(--border-radius);
+      background-color: var(--bg-card);
+      color: var(--text-light);
+      box-shadow: var(--box-shadow);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .toast.success {
+      border-left: 4px solid var(--success);
+    }
+    
+    .toast.error {
+      border-left: 4px solid var(--danger);
+    }
+    
+    .toast.info {
+      border-left: 4px solid var(--primary);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .controls {
+        flex-direction: column;
+      }
+      
+      input, select, button {
+        width: 100%;
+      }
+      
+      .multiplier {
+        font-size: 36px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .toast {
+        left: 20px;
+        right: 20px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Crypto Crash</h1>
+    <div id="game-phase" class="status" style="margin-bottom: 20px;">Game Phase: Unknown</div>
+    <div class="admin-controls" style="margin-bottom: 20px; display: flex; gap: 10px;">
+      <button id="pause-btn">Pause</button>
+      <button id="resume-btn">Resume</button>
+      <button id="stop-btn">Stop</button>
+      <button id="start-btn">Start New Game</button>
+    </div>
+    
+    <div class="auth-container">
+      <h2>Authentication</h2>
+      <div class="controls">
+        <input type="text" id="username" placeholder="Username">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="register-btn">Register</button>
+        <button id="login-btn">Login</button>
+      </div>
+      <div id="auth-status" class="status">Not authenticated</div>
+    </div>
+    
+    <div class="wallet-info" id="wallet-info" style="display: none;">
+      <h2>Wallet</h2>
+      <div id="wallet-balance"></div>
+    </div>
+    
+    <div class="game-container">
+      <h2>Game</h2>
+      <div class="multiplier-container">
+        <div class="multiplier-ring"></div>
+        <div id="multiplier" class="multiplier">1.00x</div>
+      </div>
+      <div class="controls">
+        <input type="number" id="bet-amount" placeholder="USD Amount" min="1" step="1" value="10">
+        <select id="currency">
+          <option value="BTC">BTC</option>
+          <option value="ETH">ETH</option>
+        </select>
+        <button id="bet-btn" class="bet-btn">Place Bet</button>
+        <button id="cashout-btn" class="cashout-btn" disabled>Cash Out</button>
+      </div>
+      <div id="game-status" class="status">Waiting for next round...</div>
+    </div>
+    
+    <div class="events">
+      <h3>Events</h3>
+      <div id="events-list"></div>
+    </div>
+    
+    <div class="history">
+      <h2>Game History</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Round</th>
+            <th>Crash Point</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="history-list">
+          <!-- Game history will be populated here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    // API URL - Automatically detect environment
+    const API_URL = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3000/api'
+      : 'https://crypto-crash-api.onrender.com/api'; // Update with your Render backend URL
+    
+    // DOM Elements
+    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const registerBtn = document.getElementById('register-btn');
+    const loginBtn = document.getElementById('login-btn');
+    const authStatus = document.getElementById('auth-status');
+    const walletInfo = document.getElementById('wallet-info');
+    const walletBalance = document.getElementById('wallet-balance');
+    const multiplierDisplay = document.getElementById('multiplier');
+    const betAmountInput = document.getElementById('bet-amount');
+    const currencySelect = document.getElementById('currency');
+    const betBtn = document.getElementById('bet-btn');
+    const cashoutBtn = document.getElementById('cashout-btn');
+    const gameStatus = document.getElementById('game-status');
+    const eventsList = document.getElementById('events-list');
+    const historyList = document.getElementById('history-list');
+    const gamePhaseDisplay = document.getElementById('game-phase');
+    const pauseBtn = document.getElementById('pause-btn');
+    const resumeBtn = document.getElementById('resume-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const startBtn = document.getElementById('start-btn');
+    const bettingCountdownDisplay = document.createElement('div');
+    bettingCountdownDisplay.id = 'betting-countdown';
+    bettingCountdownDisplay.style.fontWeight = 'bold';
+    bettingCountdownDisplay.style.marginBottom = '10px';
+    document.querySelector('.game-container').insertBefore(bettingCountdownDisplay, document.querySelector('.game-container').children[1]);
+
+    const runningCountdownDisplay = document.createElement('div');
+    runningCountdownDisplay.id = 'running-countdown';
+    runningCountdownDisplay.style.fontWeight = 'bold';
+    runningCountdownDisplay.style.marginBottom = '10px';
+    document.querySelector('.game-container').insertBefore(runningCountdownDisplay, bettingCountdownDisplay.nextSibling);
+
+    // Add a logout button to the UI
+    const logoutBtn = document.createElement('button');
+    logoutBtn.id = 'logout-btn';
+    logoutBtn.textContent = 'Logout';
+    logoutBtn.style.display = 'none';
+    document.querySelector('.auth-container').appendChild(logoutBtn);
+
+    // State
+    let token = localStorage.getItem('token');
+    let socket = null;
+    let currentRound = null;
+    let hasBet = false;
+    let hasCashedOut = false;
+    
+    // Initialize
+    init();
+    
+    function init() {
+      updateUIForAuth();
+      if (token) {
+        authStatus.textContent = 'Authenticating...';
+        fetchProfile();
+      }
+      fetchGameHistory();
+      registerBtn.addEventListener('click', register);
+      loginBtn.addEventListener('click', login);
+      betBtn.addEventListener('click', placeBet);
+      cashoutBtn.addEventListener('click', cashOut);
+      logoutBtn.addEventListener('click', logout);
+      // Admin controls event listeners
+      pauseBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_URL}/game/pause`, { method: 'POST' });
+          const data = await res.json();
+          showToast(data.message, 'info');
+        } catch (e) { showToast('Pause failed', 'error'); }
+      });
+      resumeBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_URL}/game/resume`, { method: 'POST' });
+          const data = await res.json();
+          showToast(data.message, 'info');
+        } catch (e) { showToast('Resume failed', 'error'); }
+      });
+      stopBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_URL}/game/stop`, { method: 'POST' });
+          const data = await res.json();
+          showToast(data.message, 'info');
+        } catch (e) { showToast('Stop failed', 'error'); }
+      });
+      startBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_URL}/game/start`, { method: 'POST' });
+          const data = await res.json();
+          showToast(data.message, 'info');
+        } catch (e) { showToast('Start failed', 'error'); }
+      });
+
+      // Listen for game phase events from server
+      if (typeof io !== 'undefined') {
+        if (!socket) {
+          // socket will be initialized in connectWebSocket
+        } else {
+          setupSocketPhaseListeners();
+        }
+      }
+    }
+    
+    // Update login and register success to show only logout
+    async function login() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      
+      if (!email || !password) {
+        authStatus.textContent = 'Email and password are required';
+        authStatus.style.borderLeft = '3px solid var(--danger)';
+        return;
+      }
+      
+      // Show loading state
+      authStatus.textContent = 'Logging in...';
+      authStatus.style.borderLeft = '3px solid var(--warning)';
+      loginBtn.disabled = true;
+      
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          token = data.token;
+          localStorage.setItem('token', token);
+          updateUIForAuth();
+          authStatus.textContent = `Logged in as ${data.user.username}`;
+          authStatus.style.borderLeft = '3px solid var(--success)';
+          connectWebSocket();
+          fetchWallet();
+          walletInfo.style.display = 'block';
+          
+          // Show animation for success
+          authStatus.classList.add('success-animation');
+          setTimeout(() => {
+            authStatus.classList.remove('success-animation');
+          }, 1000);
+        } else {
+          authStatus.textContent = data.message || 'Login failed';
+          authStatus.style.borderLeft = '3px solid var(--danger)';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        // Handle network errors or server unavailability
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          authStatus.textContent = 'Server unavailable. Please try again later.';
+        } else {
+          authStatus.textContent = 'Error: ' + error.message;
+        }
+        authStatus.style.borderLeft = '3px solid var(--danger)';
+      } finally {
+        loginBtn.disabled = false;
+      }
+    }
+    
+    async function register() {
+      const username = usernameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      
+      if (!username || !email || !password) {
+        authStatus.textContent = 'All fields are required';
+        authStatus.style.borderLeft = '3px solid var(--danger)';
+        return;
+      }
+      
+      // Show loading state
+      authStatus.textContent = 'Registering...';
+      authStatus.style.borderLeft = '3px solid var(--warning)';
+      registerBtn.disabled = true;
+      
+      try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          token = data.token;
+          localStorage.setItem('token', token);
+          updateUIForAuth();
+          authStatus.textContent = `Registered and logged in as ${data.user.username}`;
+          authStatus.style.borderLeft = '3px solid var(--success)';
+          connectWebSocket();
+          fetchWallet();
+          walletInfo.style.display = 'block';
+          
+          // Show animation for success
+          authStatus.classList.add('success-animation');
+          setTimeout(() => {
+            authStatus.classList.remove('success-animation');
+          }, 1000);
+        } else {
+          authStatus.textContent = data.message || 'Registration failed';
+          authStatus.style.borderLeft = '3px solid var(--danger)';
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        // Handle network errors or server unavailability
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          authStatus.textContent = 'Server unavailable. Please try again later.';
+        } else {
+          authStatus.textContent = 'Error: ' + error.message;
+        }
+        authStatus.style.borderLeft = '3px solid var(--danger)';
+      } finally {
+        registerBtn.disabled = false;
+      }
+    }
+    
+    async function fetchProfile() {
+      try {
+        const response = await fetch(`${API_URL}/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          authStatus.textContent = `Logged in as ${data.user.username}`;
+          connectWebSocket();
+          fetchWallet();
+          walletInfo.style.display = 'block';
+        } else {
+          authStatus.textContent = 'Authentication failed';
+          localStorage.removeItem('token');
+          token = null;
+        }
+      } catch (error) {
+        authStatus.textContent = 'Error: ' + error.message;
+        localStorage.removeItem('token');
+        token = null;
+      }
+    }
+    
+    // Wallet functions
+    async function fetchWallet() {
+      if (!token) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/wallet`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          let walletHTML = '<ul>';
+          
+          for (const [currency, details] of Object.entries(data.balances)) {
+            walletHTML += `<li>${currency}: ${details.amount.toFixed(8)} ($${details.usdEquivalent.toFixed(2)})</li>`;
+          }
+          
+          walletHTML += '</ul>';
+          walletBalance.innerHTML = walletHTML;
+        } else {
+          walletBalance.textContent = 'Failed to fetch wallet';
+        }
+      } catch (error) {
+        walletBalance.textContent = 'Error: ' + error.message;
+      }
+    }
+    
+    // Game functions
+    async function placeBet() {
+      if (!token) {
+        gameStatus.textContent = 'You must be logged in to place a bet';
+        return;
+      }
+      if (betBtn.disabled) {
+        showToast('Betting is not open right now.', 'error');
+        return;
+      }
+      if (hasBet) {
+        showToast('You already have an active bet for this round.', 'error');
+        return;
+      }
+      const usdAmount = parseFloat(betAmountInput.value);
+      const currency = currencySelect.value;
+      if (isNaN(usdAmount) || usdAmount <= 0) {
+        gameStatus.textContent = 'Invalid bet amount';
+        return;
+      }
+      try {
+        const response = await fetch(`${API_URL}/game/bet`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ usdAmount, currency })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          gameStatus.textContent = `✅ Bet placed: $${usdAmount} in ${currency}`;
+          hasBet = true;
+          hasCashedOut = false;
+          betBtn.disabled = true;
+          betBtn.title = 'You already have an active bet for this round.';
+          addEvent(`Bet placed: $${usdAmount} in ${currency}`);
+          fetchWallet();
+          // Show green toast
+          showToast(`Bet placed: $${usdAmount} in ${currency}!`, 'success');
+          // Animate bet button
+          betBtn.classList.add('success-animation');
+          setTimeout(() => betBtn.classList.remove('success-animation'), 700);
+        } else {
+          gameStatus.textContent = data.message || 'Failed to place bet';
+          showToast(data.message || 'Failed to place bet', 'error');
+        }
+      } catch (error) {
+        gameStatus.textContent = 'Error: ' + error.message;
+        showToast('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Update cashOut to show friendly errors and update button state
+    async function cashOut() {
+      if (!token) {
+        gameStatus.textContent = 'You must be logged in to cash out';
+        return;
+      }
+      if (cashoutBtn.disabled) {
+        showToast('Cash out is not available right now.', 'error');
+        return;
+      }
+      if (!hasBet || hasCashedOut) {
+        showToast('No active bet to cash out.', 'error');
+        return;
+      }
+      // Using WebSocket for cashout
+      if (socket) {
+        socket.emit('game:cashout');
+      } else {
+        // Fallback to REST API
+        try {
+          const response = await fetch(`${API_URL}/game/cashout`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          const data = await response.json();
+          if (response.ok) {
+            const { cashout } = data;
+            gameStatus.textContent = `💸 Cashed out at ${cashout.multiplier.toFixed(2)}x: $${cashout.usdAmount.toFixed(2)}`;
+            hasCashedOut = true;
+            cashoutBtn.disabled = true;
+            cashoutBtn.title = 'You have already cashed out this round.';
+            addEvent(`Cashed out at ${cashout.multiplier.toFixed(2)}x: $${cashout.usdAmount.toFixed(2)}`);
+            fetchWallet();
+            // Show green toast
+            showToast(`Cashed out at ${cashout.multiplier.toFixed(2)}x: $${cashout.usdAmount.toFixed(2)}!`, 'success');
+            // Animate cashout button
+            cashoutBtn.classList.add('success-animation');
+            setTimeout(() => cashoutBtn.classList.remove('success-animation'), 700);
+          } else {
+            gameStatus.textContent = data.message || 'Failed to cash out';
+            showToast(data.message || 'Failed to cash out', 'error');
+          }
+        } catch (error) {
+          gameStatus.textContent = 'Error: ' + error.message;
+          showToast('Error: ' + error.message, 'error');
+        }
+      }
+    }
+    
+    async function fetchGameHistory() {
+      try {
+        const response = await fetch(`${API_URL}/game/history`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          historyList.innerHTML = '';
+          
+          data.forEach(round => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${round.roundNumber}</td>
+              <td>${round.crashPoint.toFixed(2)}x</td>
+              <td>${new Date(round.startTime).toLocaleTimeString()}</td>
+            `;
+            historyList.appendChild(row);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching game history:', error);
+      }
+    }
+    
+    // Toast notification system
+    function showToast(message, type = 'info', duration = 3000) {
+      // Create toast element if it doesn't exist
+      let toast = document.querySelector('.toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+      }
+      
+      // Set content and type
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      
+      // Show the toast
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // Hide after duration
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, duration);
+    }
+    
+    // WebSocket functions
+    function setupSocketPhaseListeners() {
+      if (!socket) return;
+      socket.on('game:phase', (data) => {
+        gamePhaseDisplay.textContent = `Game Phase: ${data.phase.charAt(0).toUpperCase() + data.phase.slice(1)}`;
+        if (data.phase === 'betting') {
+          betBtn.disabled = false;
+          betBtn.title = '';
+          bettingCountdownDisplay.style.display = 'block';
+          runningCountdownDisplay.style.display = 'none';
+          gameStatus.textContent = 'Betting is OPEN! Place your bets now.';
+          cashoutBtn.disabled = true;
+          cashoutBtn.title = 'You can only cash out during the game running phase.';
+        } else if (data.phase === 'running') {
+          betBtn.disabled = true;
+          betBtn.title = 'Betting is closed for this round.';
+          bettingCountdownDisplay.style.display = 'none';
+          runningCountdownDisplay.style.display = 'block';
+          gameStatus.textContent = 'Game is RUNNING! Cash out if you dare.';
+          cashoutBtn.disabled = !hasBet || hasCashedOut;
+          cashoutBtn.title = hasBet && !hasCashedOut ? '' : 'You must place a bet to cash out.';
+        } else if (data.phase === 'ended') {
+          betBtn.disabled = true;
+          betBtn.title = 'Wait for the next round to place a bet.';
+          bettingCountdownDisplay.style.display = 'none';
+          runningCountdownDisplay.style.display = 'none';
+          gameStatus.textContent = 'Round ended. Results shown.';
+          cashoutBtn.disabled = true;
+          cashoutBtn.title = 'You can only cash out during the game running phase.';
+        } else if (data.phase === 'paused') {
+          betBtn.disabled = true;
+          betBtn.title = 'Game is paused.';
+          bettingCountdownDisplay.style.display = 'none';
+          runningCountdownDisplay.style.display = 'none';
+          gameStatus.textContent = 'Game is PAUSED.';
+          cashoutBtn.disabled = true;
+          cashoutBtn.title = 'Game is paused.';
+        } else if (data.phase === 'stopped') {
+          betBtn.disabled = true;
+          betBtn.title = 'Game is stopped.';
+          bettingCountdownDisplay.style.display = 'none';
+          runningCountdownDisplay.style.display = 'none';
+          gameStatus.textContent = 'Game is STOPPED.';
+          cashoutBtn.disabled = true;
+          cashoutBtn.title = 'Game is stopped.';
+        } else {
+          betBtn.disabled = true;
+          betBtn.title = '';
+          bettingCountdownDisplay.style.display = 'none';
+          runningCountdownDisplay.style.display = 'none';
+          cashoutBtn.disabled = true;
+          cashoutBtn.title = '';
+        }
+      });
+      socket.on('game:bettingCountdown', (data) => {
+        if (typeof data.seconds === 'number' && data.seconds > 0) {
+          bettingCountdownDisplay.textContent = `Betting closes in ${data.seconds} second${data.seconds === 1 ? '' : 's'}...`;
+        } else {
+          bettingCountdownDisplay.textContent = '';
+        }
+      });
+      socket.on('game:runningCountdown', (data) => {
+        if (typeof data.seconds === 'number' && data.seconds > 0) {
+          runningCountdownDisplay.textContent = `Game ends in ${data.seconds} second${data.seconds === 1 ? '' : 's'}...`;
+        } else {
+          runningCountdownDisplay.textContent = '';
+        }
+      });
+    }
+
+    // Call setupSocketPhaseListeners after socket is connected
+    function connectWebSocket() {
+      if (!token) return;
+      
+      // Disconnect existing socket if any
+      if (socket) {
+        socket.disconnect();
+      }
+      
+      // Show connecting status
+      gameStatus.textContent = 'Connecting to game server...';
+      gameStatus.classList.add('loading');
+      
+      // Connect to WebSocket server with retry mechanism
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      function attemptConnection() {
+        // Determine WebSocket URL based on environment
+        // In production, use the same domain as the API
+        const wsUrl = API_URL.includes('localhost') ? 'http://localhost:3000' : API_URL;
+        
+        // Connect to WebSocket server
+        socket = io(wsUrl, {
+          auth: { token },
+          reconnectionAttempts: maxRetries,
+          reconnectionDelay: 1000,
+          timeout: 5000,
+          transports: ['websocket', 'polling']
+        });
+        
+        // Connection events
+        socket.on('connect', () => {
+          addEvent('Connected to WebSocket server');
+          showToast('Connected to game server', 'success');
+          gameStatus.classList.remove('loading');
+          gameStatus.textContent = 'Connected to game server';
+          setupSocketPhaseListeners();
+        });
+        
+        socket.on('connect_error', (error) => {
+          addEvent(`WebSocket connection error: ${error.message}`);
+          retryCount++;
+          
+          if (retryCount <= maxRetries) {
+            gameStatus.textContent = `Connection failed. Retrying (${retryCount}/${maxRetries})...`;
+          } else {
+            gameStatus.textContent = 'Could not connect to game server. Please try again later.';
+            gameStatus.classList.remove('loading');
+            showToast('Failed to connect to game server', 'error');
+          }
+        });
+        
+        socket.on('disconnect', (reason) => {
+          addEvent(`Disconnected from WebSocket server: ${reason}`);
+          gameStatus.textContent = 'Disconnected from game server';
+          
+          // Auto-reconnect for certain disconnect reasons
+          if (reason === 'io server disconnect' || reason === 'transport close') {
+            showToast('Connection lost. Reconnecting...', 'info');
+            setTimeout(() => {
+              if (token) attemptConnection();
+            }, 2000);
+          }
+        });
+      }
+      
+      attemptConnection();
+      
+      // Game events
+      socket.on('game:waiting', (data) => {
+        gameStatus.textContent = `Waiting for next round (${data.nextRoundIn}s)...`;
+        multiplierDisplay.textContent = '1.00x';
+        multiplierDisplay.classList.remove('crashed');
+        betBtn.disabled = false;
+        cashoutBtn.disabled = true;
+        hasBet = false;
+        hasCashedOut = false;
+        currentRound = null;
+        addEvent(`Waiting for next round (${data.nextRoundIn}s)...`);
+      });
+      
+      socket.on('game:started', (data) => {
+        gameStatus.textContent = `Round ${data.roundNumber} started!`;
+        currentRound = data.roundId;
+        multiplierDisplay.textContent = '1.00x';
+        multiplierDisplay.classList.remove('crashed');
+        cashoutBtn.disabled = !hasBet || hasCashedOut;
+        addEvent(`Round ${data.roundNumber} started!`);
+      });
+      
+      socket.on('game:multiplier', (data) => {
+        multiplierDisplay.textContent = `${data.multiplier}x`;
+        cashoutBtn.disabled = !hasBet || hasCashedOut;
+      });
+      
+      socket.on('game:cashout', (data) => {
+        addEvent(`Player cashed out at ${data.multiplier.toFixed(2)}x: $${data.usdAmount.toFixed(2)}`);
+      });
+      
+      socket.on('game:cashout:success', (data) => {
+        const { cashout } = data;
+        gameStatus.textContent = `💸 Cashed out at ${cashout.multiplier.toFixed(2)}x: $${cashout.usdAmount.toFixed(2)}`;
+        hasCashedOut = true;
+        cashoutBtn.disabled = true;
+        cashoutBtn.title = 'You have already cashed out this round.';
+        addEvent(`Cashed out at ${cashout.multiplier.toFixed(2)}x: $${cashout.usdAmount.toFixed(2)}`);
+        fetchWallet();
+        showToast(`Cashed out at ${cashout.multiplier.toFixed(2)}x: $${cashout.usdAmount.toFixed(2)}!`, 'success');
+        cashoutBtn.classList.add('success-animation');
+        setTimeout(() => cashoutBtn.classList.remove('success-animation'), 700);
+      });
+      
+      socket.on('game:crashed', (data) => {
+        gameStatus.textContent = `Game crashed at ${data.crashPoint.toFixed(2)}x!`;
+        multiplierDisplay.textContent = `${data.crashPoint.toFixed(2)}x`;
+        multiplierDisplay.classList.add('crashed');
+        cashoutBtn.disabled = true;
+        addEvent(`Game crashed at ${data.crashPoint.toFixed(2)}x!`);
+        fetchGameHistory();
+      });
+      
+      socket.on('error', (data) => {
+        gameStatus.textContent = `Error: ${data.message}`;
+        addEvent(`Error: ${data.message}`);
+      });
+    }
+    
+    // Helper functions
+    function addEvent(message) {
+      const eventElement = document.createElement('div');
+      eventElement.className = 'event';
+      eventElement.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+      eventsList.prepend(eventElement);
+      
+      // Limit the number of events shown
+      if (eventsList.children.length > 50) {
+        eventsList.removeChild(eventsList.lastChild);
+      }
+    }
+
+    // Update UI based on authentication status
+    function updateUIForAuth() {
+      if (token) {
+        // Show all main sections after login
+        document.querySelector('.controls').style.display = 'none';
+        walletInfo.style.display = 'block';
+        document.querySelector('.game-container').style.display = 'block';
+        document.querySelector('.events').style.display = 'block';
+        document.querySelector('.history').style.display = 'block';
+        logoutBtn.style.display = 'block';
+        authStatus.textContent = 'You are logged in.';
+      } else {
+        // Show login/register controls only
+        document.querySelector('.controls').style.display = 'block';
+        walletInfo.style.display = 'none';
+        document.querySelector('.game-container').style.display = 'none';
+        document.querySelector('.events').style.display = 'none';
+        document.querySelector('.history').style.display = 'none';
+        logoutBtn.style.display = 'none';
+        authStatus.textContent = 'Not authenticated';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      token = null;
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+      updateUIForAuth();
+      // Optionally reload the page for a full reset
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
